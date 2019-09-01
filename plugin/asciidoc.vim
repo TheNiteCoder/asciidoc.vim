@@ -312,6 +312,19 @@ fun! s:MakeFormatted(char)
     call s:Insert(l:end, l:cole-1+strlen(a:char), a:char)
 endfun
 
+fun! s:AsciidocShowSyntaxHelp()
+    execute 'new | 0read !asciidoc --help syntax'
+    setlocal filetype=asciidoc
+    normal gg
+endfun
+
+fun! s:VAsciidocShowSyntaxHelp()
+    execute 'vnew | 0read !asciidoc --help syntax'
+    setlocal filetype=asciidoc
+    normal gg
+endfun
+
+
 " TODO figure out folding 
 fun! s:AsciidocFold()
     let l:line = getline(v:lnum)
@@ -345,7 +358,10 @@ command! AsciidocInsertOpenBlock        call <SID>InsertBlock('-', 2)
 " command! AsciidocMakeMonospacedText     call <SID>MakeFormatted('+')
 " command! AsciidocMakePassthroughText    call <SID>MakeFormatted('`')
 
+
 command! -nargs=+ AsciidocInsertTable   call <SID>InsertTable(<f-args>)
+command! AsciidocShowSyntaxHelp         call <SID>AsciidocShowSyntaxHelp()
+command! AsciidocShowVSyntaxHelp         call <SID>VAsciidocShowSyntaxHelp()
 
 nnoremap <C-A><C-N> :AsciidocGotoNextHeader<CR>
 nnoremap <C-A><C-P> :AsciidocGotoPrevHeader<CR>
