@@ -2,9 +2,10 @@
 " Author: Samuel Daley
 " 
 
-
 " IDEAS
 " Add  a tree function where you can open the document in a tree format
+
+let s:idRegex = '^\s\{0,}\[\[.\+\]\]\s\{0,}$'
 
 let s:headerSingleLineRegex = '\s\{0,}\(=\{1,5}\)\s\+.\+\s\+\1'
 
@@ -14,6 +15,16 @@ let s:headerSingleLineLevelsRegex = {
     \ 2: '^\s\{0,}\(=\{3}\)\s\+.\+\s\+\1$',
     \ 3: '^\s\{0,}\(=\{4}\)\s\+.\+\s\+\1$',
     \ 4: '^\s\{0,}\(=\{5}\)\s\+.\+\s\+\1$'
+\ }
+
+let s:headerSingleLineLeftOnlyRegex = '^\s\{0,}\(=\{1,5}\)\s\+.\+\s\{0,}$'
+
+let s:headerSingleLineLeftOnlyLevelsRegex = {
+    \ 0: '^\s\{0,}\(=\{1}\s+.\+\s\{0,}$',
+    \ 1: '^\s\{0,}\(=\{2}\s+.\+\s\{0,}$',
+    \ 2: '^\s\{0,}\(=\{3}\s+.\+\s\{0,}$',
+    \ 3: '^\s\{0,}\(=\{4}\s+.\+\s\{0,}$',
+    \ 4: '^\s\{0,}\(=\{5}\s+.\+\s\{0,}$'
 \ }
 
 let s:headerUnderlineRegex = '.\+\n[=\-+~\^]\{1,}'
@@ -35,6 +46,8 @@ fun! s:GetHeaderLineNumber(...)
 
     while l:line > 0
         if getline(l:line) =~ s:headerSingleLineRegex
+            return l:line
+        elseif getline(l:line) =~ s:headerSingleLineLeftOnlyRegex
             return l:line
         elseif join([getline(l:line), getline(l:line + 1)], "\n") =~ s:headerUnderlineRegex
             return l:line
@@ -145,6 +158,7 @@ fun! s:GetNextHeaderLineNumberAtLevel(level, ...)
     while(l:l <= line('$'))
         if getline(l:l) =~ get(s:headerSingleLineLevelsRegex, a:level)
             return l:l
+        elseif getline(l:l) =~ get(s:headerSingleLineLeftOnlyLevelsRegex, a:level)
         elseif join([getline(l:l), getline(l:l+1)], "\n") =~ get(s:headerUnderlineLevelsRegex, a:level)
             return l:l
         endif
@@ -162,6 +176,8 @@ fun! s:GetPrevHeaderLineNumberAtLevel(level, ...)
     let l:l = l:line 
     while(l:l > 0)
         if getline(l:l) =~ get(s:headerSingleLineLevelsRegex, a:level)
+            return l:l
+        elseif getline(l:l) =~ get(s:headerSingleLineLeftOnlyLevelsRegex, a:level)
             return l:l
         elseif join([getline(l:l), getline(l:l+1)], "\n") =~ get(s:headerUnderlineLevelsRegex, a:level)
             return l:l
@@ -265,23 +281,43 @@ fun! s:InsertTable(columns, rows, ...)
     call append(line('.'), l:lines)
 endfun
 
+fun! s:ExploreTree()
+    
+endfun
+
 fun! s:Insert(line, idx, str)
     let l:line = getline(a:line)
     let l:line = strpart(l:line, 0, a:idx) . a:str . strpart(l:line, a:idx)
     call setline(a:line, l:line)
 endfun
 
+fun! s:CompleteIds()
+    let l:tags = {} 
+    let [l:y, l:x] = getpos('.')[1:2]
+    call cursor(line('^'), 1)
+    while 1 == 1
+        let l:line = search(s:idRegex, 'W')
+        if l:line == 0
+            break
+        endif
+        let l:text = getline(l:line)
+        let l:text = substitute(l:text, "[[", "", "g")
+        let l:text = substitute(l:text, "]]", "", "g")
+        let extend(l:tags, { l:text: l:line })
+    endwhile
+endfun
+
 fun! s:MakeFormatted(char)
     let [l:begin, l:colb] = getpos('v')[1:2]
     let [l:end, l:cole] = getpos('.')[1:2]
-    call s:Insert(l:begin, l:colb, a:char)
-    call s:Insert(l:end, l:cole, a:char)
+    call s:Insert(l:begin, l:colb-1, a:char)
+    call s:Insert(l:end, l:cole-1+strlen(a:char), a:char)
 endfun
 
-command! AsciidocGotoToCurrentHeader call <SID>GotoCurrentHeader()
-command! AsciidocGotoNextHeader call <SID>GotoNextHeader()
-command! AsciidocGotoPrevHeader call <SID>GotoPreviousHeader()
-command! AsciidocGotoParentHeader call <SID>GotoParentHeader()
+command! AsciidocGotoCurrentHeader      call <SID>GotoCurrentHeader()
+command! AsciidocGotoNextHeader         call <SID>GotoNextHeader()
+command! AsciidocGotoPrevHeader         call <SID>GotoPreviousHeader()
+command! AsciidocGotoParentHeader       call <SID>GotoParentHeader()
 
 command! AsciidocInsertListingBlock     call <SID>InsertBlock('-')
 command! AsciidocInsertLiteralBlock     call <SID>InsertBlock('.')
