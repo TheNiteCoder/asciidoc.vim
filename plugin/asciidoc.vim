@@ -1,6 +1,5 @@
 " URL: sd@localhost:/home/sd/git/asciidoc.vim/plugin/asciidoc.vim
 " Author: Samuel Daley
-" 
 
 " IDEAS
 " Add  a tree function where you can open the document in a tree format
@@ -282,7 +281,6 @@ fun! s:InsertTable(columns, rows, ...)
 endfun
 
 fun! s:ExploreTree()
-    
 endfun
 
 fun! s:Insert(line, idx, str)
@@ -314,6 +312,19 @@ fun! s:MakeFormatted(char)
     call s:Insert(l:end, l:cole-1+strlen(a:char), a:char)
 endfun
 
+" TODO figure out folding 
+fun! s:AsciidocFold()
+    let l:line = getline(v:lnum)
+    let l:depth = match(l:line, '=\+\s+.\+\s+')
+    if l:depth > 0
+        if l:depth > 1
+            let l:depth -= 1
+        endif
+        return ">" . l:depth
+    endif
+endfun
+" setlocal foldexpr=<SID>AsciidocFold()
+
 command! AsciidocGotoCurrentHeader      call <SID>GotoCurrentHeader()
 command! AsciidocGotoNextHeader         call <SID>GotoNextHeader()
 command! AsciidocGotoPrevHeader         call <SID>GotoPreviousHeader()
@@ -328,11 +339,11 @@ command! AsciidocInsertCommentBlock     call <SID>InsertBlock('/')
 command! AsciidocInsertPassthroughBlock call <SID>InsertBlock('+')
 command! AsciidocInsertOpenBlock        call <SID>InsertBlock('-', 2)
 
-command! AsciidocMakeBoldText           call <SID>MakeFormatted('*')
-command! AsciidocMakeItalicsText        call <SID>MakeFormatted('_')
-command! AsciidocMakeEmphasizedText     call <SID>MakeFormatted("'")
-command! AsciidocMakeMonospacedText     call <SID>MakeFormatted('+')
-command! AsciidocMakePassthroughText    call <SID>MakeFormatted('`')
+" command! AsciidocMakeBoldText           call <SID>MakeFormatted('*')
+" command! AsciidocMakeItalicsText        call <SID>MakeFormatted('_')
+" command! AsciidocMakeEmphasizedText     call <SID>MakeFormatted("'")
+" command! AsciidocMakeMonospacedText     call <SID>MakeFormatted('+')
+" command! AsciidocMakePassthroughText    call <SID>MakeFormatted('`')
 
 command! -nargs=+ AsciidocInsertTable   call <SID>InsertTable(<f-args>)
 
