@@ -1,5 +1,5 @@
-" URL: github.com/TheNiteCoder/asciidoc.vim
-" Author: Nite Coder
+" URL: sd@localhost:/home/sd/git/asciidoc.vim/plugin/asciidoc.vim
+" Author: Samuel Daley
 
 " IDEAS
 " Add  a tree function where you can open the document in a tree format
@@ -107,53 +107,30 @@ fun! s:GotoCurrentHeader(...)
     endif
 endfun
 
-fun! s:GetNextHeaderLineNumber(...)
-    if a:0 == 0
-        let l:line = line('.')
-    else
-        let l:line = a:!
-    endif
-    let [l:y, l:x] = getpos('.')
-    let l:loc1 = search(s:headerSingleLineRegex, 'W')
-    call cursor(l:y, l:x)
-    let l:loc2 = search(s:headerUnderlineRegex, 'W')
-    call cursor(l:y, l:x)
-    let l:loc3 = search(s:headerSingleLineLeftOnlyRegex, 'W')
-    call cursor(l:y, l:x)
-    if l:loc1 == 0 && l:loc2 == 0 && l:loc3 == 0
-        return 0
-    endif
-    if l:loc1 > l:loc2 && l:loc1 > l:loc3
-        return l:loc1
-    elseif l:loc2 > l:loc1 && l:loc2 > l:loc3
-        return l:loc2
-    else
-        return l:loc3
-    endif
-    return 0
-endfun
-
 fun! s:GotoNextHeader(...)
     if a:0 == 0
         let l:line = line('.')
     else
         let l:line = a:1
     endif
-    let l:location = s:GetNextHeaderLineNumber(l:line)
-    if l:location == 0
-        echo "No Header Ahead"
-        return 
+    let [l:y, l:x] = getpos('.')[1:2]
+    let l:loc1 = search(s:headerSingleLineRegex, 'W')
+    call cursor(l:y, l:x)
+    let l:loc2 = search(s:headerUnderlineRegex, 'W')
+    call cursor(l:y, l:x)
+    if l:loc1 == 0 && l:loc2 == 0
+        echom "No headers next"
+        return
     endif
-    call cursor(l:location, 1)
+    if l:loc1 > l:loc2
+        call cursor(l:loc1, 1)
+    else
+        call cursor(l:loc2, 1)
+    endif
 endfun
 
-fun! s:GetPrevHeaderLineNumber(...)
-    if a:0 == 0
-        let l:line = line('.')
-    else
-        let l:line = a:1
-    endif
-    let l:currentHeaderLocation = s:GetHeaderLineNumber(l:line)
+fun! s:GotoPreviousHeader(...)
+    let l:currentHeaderLocation = s:GetHeaderLineNumber()
     let l:noPreviousHeader = 0
     if l:currentHeaderLocation <= 1
         let l:noPreviousHeader = 1
@@ -162,24 +139,11 @@ fun! s:GetPrevHeaderLineNumber(...)
         if l:previousHeaderLineNumber == 0
             let l:noPreviousHeader = 1
         else
-            return l:previousHeaderLineNumber
+            call cursor(l:previousHeaderLineNumber, 1)
         endif
     endif
     if l:noPreviousHeader
-        echo "No Header Behind"
-    endif
-    return 0
-endfun
-
-fun! s:GotoPrevHeader(...)
-    if a:0 == 0
-        let l:line = line('.')
-    else
-        let l:line = a:1
-    endif
-    let l:location = s:GetPrevHeaderLineNumber(l:line)
-    if l:location == 0
-          
+        echom "No previous header"
     endif
 endfun
 
@@ -249,13 +213,15 @@ endfun
 " 2 is times it should be repeated, 0 for default times
 " 3 is line
 " 4 is a dict that contains arguments and possible values
-fun! s:InsertBlock(char, ...)
-    if a:0 == 1
-        let l:char = a:char
-        let l:times = a:1
-    else
-        let l:char = a:char
+fun! s:InsertBlock(...)
+    if a:0 == 2
+        let l:char = a:1
+        let l:times = a:2
+    elseif a:0 == 1
+        let l:char = a:1
         let l:times = 10
+    else
+        return
     endif
     let l:line = line('.')
     if l:times == 0
@@ -317,7 +283,7 @@ endfun
 fun! s:ExploreTree()
 endfun
 
-fun! asciidoc#insert(line, idx, str)
+fun! s:Insert(line, idx, str)
     let l:line = getline(a:line)
     let l:line = strpart(l:line, 0, a:idx) . a:str . strpart(l:line, a:idx)
     call setline(a:line, l:line)
@@ -339,23 +305,21 @@ fun! s:CompleteIds()
     endwhile
 endfun
 
-fun! s:MakeFormatted(char, begin, end)
-    let l:begin = getpos('v')[1]
-    let l:end = getpos('.')[1]
-    let l:colbegin = getpos('v')[2]
-    let l:colend = getpos('.')[2]
-    call asciidoc#insert(l:begin, l:colbegin, a:char)
-    call asciidoc#insert(l:end, l:colend+strlen(a:char), a:char)
+fun! s:MakeFormatted(char)
+    let [l:begin, l:colb] = getpos('v')[1:2]
+    let [l:end, l:cole] = getpos('.')[1:2]
+    call s:Insert(l:begin, l:colb-1, a:char)
+    call s:Insert(l:end, l:cole-1+strlen(a:char), a:char)
 endfun
 
 fun! s:AsciidocShowSyntaxHelp()
-    execute 'new +0 | 0read !asciidoc --help syntax'
+    execute 'new | 0read !asciidoc --help syntax'
     setlocal filetype=asciidoc
     normal gg
 endfun
 
 fun! s:VAsciidocShowSyntaxHelp()
-    execute 'vnew +0 | 0read !asciidoc --help syntax'
+    execute 'vnew | 0read !asciidoc --help syntax'
     setlocal filetype=asciidoc
     normal gg
 endfun
@@ -388,11 +352,11 @@ command! AsciidocInsertCommentBlock     call <SID>InsertBlock('/')
 command! AsciidocInsertPassthroughBlock call <SID>InsertBlock('+')
 command! AsciidocInsertOpenBlock        call <SID>InsertBlock('-', 2)
 
-" command! -range AsciidocMakeBoldText           call <SID>MakeFormatted('*', <line1>, <line2>)
-" command! -range AsciidocMakeItalicsText        call <SID>MakeFormatted('_', <line1>, <line2>)
-" command! -range AsciidocMakeEmphasizedText     call <SID>MakeFormatted("'", <line1>, <line2>)
-" command! -range AsciidocMakeMonospacedText     call <SID>MakeFormatted('+', <line1>, <line2>)
-" command! -range AsciidocMakePassthroughText    call <SID>MakeFormatted('`', <line1>, <line2>)
+" command! AsciidocMakeBoldText           call <SID>MakeFormatted('*')
+" command! AsciidocMakeItalicsText        call <SID>MakeFormatted('_')
+" command! AsciidocMakeEmphasizedText     call <SID>MakeFormatted("'")
+" command! AsciidocMakeMonospacedText     call <SID>MakeFormatted('+')
+" command! AsciidocMakePassthroughText    call <SID>MakeFormatted('`')
 
 
 command! -nargs=+ AsciidocInsertTable   call <SID>InsertTable(<f-args>)
