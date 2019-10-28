@@ -1,2 +1,2 @@
 # asciidoc.vim
-A Asciidoc Vim Plugin
+An Asciidoc Vim Plugin

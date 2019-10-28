@@ -314,13 +314,13 @@ endfun
 
 fun! s:AsciidocShowSyntaxHelp()
     execute 'new | 0read !asciidoc --help syntax'
-    setlocal filetype=asciidoc
+    setlocal filetype=asciidoc buftype=nofile bufhidden=wipe nobuflisted noswapfile nowrap
     normal gg
 endfun
 
 fun! s:VAsciidocShowSyntaxHelp()
     execute 'vnew | 0read !asciidoc --help syntax'
-    setlocal filetype=asciidoc
+    setlocal filetype=asciidoc buftype=nofile bufhidden=wipe nobuflisted noswapfile nowrap
     normal gg
 endfun
 
@@ -357,7 +357,6 @@ command! AsciidocInsertOpenBlock        call <SID>InsertBlock('-', 2)
 " command! AsciidocMakeEmphasizedText     call <SID>MakeFormatted("'")
 " command! AsciidocMakeMonospacedText     call <SID>MakeFormatted('+')
 " command! AsciidocMakePassthroughText    call <SID>MakeFormatted('`')
-
 
 command! -nargs=+ AsciidocInsertTable   call <SID>InsertTable(<f-args>)
 command! AsciidocShowSyntaxHelp         call <SID>AsciidocShowSyntaxHelp()
