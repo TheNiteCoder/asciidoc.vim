@@ -19,11 +19,11 @@ let s:headerSingleLineLevelsRegex = {
 let s:headerSingleLineLeftOnlyRegex = '^\s\{0,}\(=\{1,5}\)\s\+.\+\s\{0,}$'
 
 let s:headerSingleLineLeftOnlyLevelsRegex = {
-    \ 0: '^\s\{0,}\(=\{1}\s+.\+\s\{0,}$',
-    \ 1: '^\s\{0,}\(=\{2}\s+.\+\s\{0,}$',
-    \ 2: '^\s\{0,}\(=\{3}\s+.\+\s\{0,}$',
-    \ 3: '^\s\{0,}\(=\{4}\s+.\+\s\{0,}$',
-    \ 4: '^\s\{0,}\(=\{5}\s+.\+\s\{0,}$'
+    \ 0: '^\s\{0,}\(=\{1}\)\s\+.\+\s\{0,}$',
+    \ 1: '^\s\{0,}\(=\{2}\)\s\+.\+\s\{0,}$',
+    \ 2: '^\s\{0,}\(=\{3}\)\s\+.\+\s\{0,}$',
+    \ 3: '^\s\{0,}\(=\{4}\)\s\+.\+\s\{0,}$',
+    \ 4: '^\s\{0,}\(=\{5}\)\s\+.\+\s\{0,}$',
 \ }
 
 let s:headerUnderlineRegex = '.\+\n[=\-+~\^]\{1,}'
@@ -69,26 +69,37 @@ fun! s:GetHeaderLevel(...)
         return -1
     endif
     let l:text = getline(l:location)
-    if ! l:text =~ s:headerSingleLineRegex
-        let l:text = join([l:text, getline(l:location+1)], "\n")
-    else
+    if l:text =~ s:headerSingleLineRegex
         for l:key in keys(s:headerSingleLineLevelsRegex)
             if l:text =~ get(s:headerSingleLineLevelsRegex, l:key)
                 return l:key
             endif
         endfor
+        echom "[DEBUGG] 1"
         return -3
+    elseif l:text =~ s:headerSingleLineLeftOnlyRegex
+        for l:key in keys(s:headerSingleLineLeftOnlyLevelsRegex)
+            if l:text =~ get(s:headerSingleLineLeftOnlyLevelsRegex, l:key)
+                return l:key
+            endif
+        endfor
+        echom "[DEBUGG] 2"
+        return -3
+    else
+        let l:text = join([l:text, getline(l:location+1)], "\n")
     endif
     if ! l:text =~ s:headerUnderlineRegex
         return -1
     else
-        for l:key in keys(l:headerUnderlineLevelsRegex)
+        for l:key in keys(s:headerUnderlineLevelsRegex)
             if l:text =~ get(s:headerUnderlineLevelsRegex, l:key)
                 return l:key
             endif
         endfor
+        echom "[DEBUGG] 3"
         return -3
     endif
+    echom "[DEBUGG] 4"
     return -3
 endfun
 
@@ -118,14 +129,18 @@ fun! s:GotoNextHeader(...)
     call cursor(l:y, l:x)
     let l:loc2 = search(s:headerUnderlineRegex, 'W')
     call cursor(l:y, l:x)
-    if l:loc1 == 0 && l:loc2 == 0
+    let l:loc3 = search(s:headerSingleLineLeftOnlyRegex, 'W')
+    call cursor(l:y, l:x)
+    if l:loc1 == 0 && l:loc2 == 0 && l:loc3 == 0
         echom "No headers next"
         return
     endif
     if l:loc1 > l:loc2
         call cursor(l:loc1, 1)
-    else
+    elseif l:loc2 > l:loc3
         call cursor(l:loc2, 1)
+    else
+        call cursor(l:loc3, 1)
     endif
 endfun
 
@@ -193,11 +208,13 @@ fun! s:GetParentHeaderLineNumber(...)
         let l:line = a:1
     endif
     let l:level = s:GetHeaderLevel(l:line)
-    if l:level > 1
+    if l:level > 0
         let l:lineNumber = s:GetPrevHeaderLineNumberAtLevel(l:level - 1, l:line)
         return l:lineNumber
-    endif
+    else
+        echom "[DEBUG] " l:level
     return 0
+    endif
 endfun
 
 fun! s:GotoParentHeader()
