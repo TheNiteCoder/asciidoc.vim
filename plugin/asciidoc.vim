@@ -75,7 +75,6 @@ fun! s:GetHeaderLevel(...)
                 return l:key
             endif
         endfor
-        echom "[DEBUGG] 1"
         return -3
     elseif l:text =~ s:headerSingleLineLeftOnlyRegex
         for l:key in keys(s:headerSingleLineLeftOnlyLevelsRegex)
@@ -83,7 +82,6 @@ fun! s:GetHeaderLevel(...)
                 return l:key
             endif
         endfor
-        echom "[DEBUGG] 2"
         return -3
     else
         let l:text = join([l:text, getline(l:location+1)], "\n")
@@ -96,10 +94,8 @@ fun! s:GetHeaderLevel(...)
                 return l:key
             endif
         endfor
-        echom "[DEBUGG] 3"
         return -3
     endif
-    echom "[DEBUGG] 4"
     return -3
 endfun
 
@@ -275,7 +271,7 @@ fun! s:InsertTable(columns, rows, ...)
     while l:c < a:rows
         let l:line = ""
         let l:c2 = 0
-        while l:c2 < a:columns
+        while l:c2 < a:columns + 1
             let l:line .= '|'
             let l:c3 = 0
             while l:c3 < l:width
@@ -307,7 +303,7 @@ fun! s:Insert(line, idx, str)
 endfun
 
 fun! s:CompleteIds()
-    let l:tags = {} 
+    let l:tags = []
     let [l:y, l:x] = getpos('.')[1:2]
     call cursor(line('^'), 1)
     while 1 == 1
@@ -318,8 +314,9 @@ fun! s:CompleteIds()
         let l:text = getline(l:line)
         let l:text = substitute(l:text, "[[", "", "g")
         let l:text = substitute(l:text, "]]", "", "g")
-        let extend(l:tags, { l:text: l:line })
+        let extend(l:tags, [ l:text ])
     endwhile
+    call complete(col('.'), l:tags)
 endfun
 
 fun! s:MakeFormatted(char)
