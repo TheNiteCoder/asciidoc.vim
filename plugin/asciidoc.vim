@@ -4,9 +4,6 @@
 " IDEAS
 " Add  a tree function where you can open the document in a tree format
 
-" FIXME remove this after testing
-unlet g:loaded_asciidoc
-
 " Protect against double loading
 if exists('g:loaded_asciidoc')
 	finish
