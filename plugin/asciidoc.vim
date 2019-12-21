@@ -4,6 +4,15 @@
 " IDEAS
 " Add  a tree function where you can open the document in a tree format
 
+" FIXME remove this after testing
+unlet g:loaded_asciidoc
+
+" Protect against double loading
+if exists('g:loaded_asciidoc')
+	finish
+endif
+let g:loaded_asciidoc = 1
+
 let s:idRegex = '^\s\{0,}\[\[.\+\]\]\s\{0,}$'
 
 let s:headerSingleLineRegex = '\s\{0,}\(=\{1,5}\)\s\+.\+\s\+\1'
@@ -114,6 +123,31 @@ fun! s:GotoCurrentHeader(...)
     endif
 endfun
 
+fun! s:GetNextHeaderLineNumber(...)
+    if a:0 == 0
+        let l:line = line('.')
+    else
+        let l:line = a:1
+    endif
+    let [l:y, l:x] = getpos('.')[1:2]
+    let l:loc1 = search(s:headerSingleLineRegex, 'W')
+    call cursor(l:y, l:x)
+    let l:loc2 = search(s:headerUnderlineRegex, 'W')
+    call cursor(l:y, l:x)
+    let l:loc3 = search(s:headerSingleLineLeftOnlyRegex, 'W')
+    call cursor(l:y, l:x)
+    if l:loc1 == 0 && l:loc2 == 0 && l:loc3 == 0
+        return -1
+    endif
+    if l:loc1 > l:loc2
+		return l:loc1
+    elseif l:loc2 > l:loc3
+        return l:loc2
+    else
+       	return l:loc3
+    endif
+endfun
+
 fun! s:GotoNextHeader(...)
     if a:0 == 0
         let l:line = line('.')
@@ -208,7 +242,7 @@ fun! s:GetParentHeaderLineNumber(...)
         let l:lineNumber = s:GetPrevHeaderLineNumberAtLevel(l:level - 1, l:line)
         return l:lineNumber
     else
-        echom "[DEBUG] " l:level
+        " echom "[DEBUG] " l:level
     return 0
     endif
 endfun
@@ -293,9 +327,6 @@ fun! s:InsertTable(columns, rows, ...)
     call append(line('.'), l:lines)
 endfun
 
-fun! s:ExploreTree()
-endfun
-
 fun! s:Insert(line, idx, str)
     let l:line = getline(a:line)
     let l:line = strpart(l:line, 0, a:idx) . a:str . strpart(l:line, a:idx)
@@ -352,6 +383,37 @@ fun! s:AsciidocFold()
 endfun
 " setlocal foldexpr=<SID>AsciidocFold()
 
+fun! s:BrowseTree(orientation)
+	" Goto to top of file
+	normal gg
+    let [l:y, l:x] = getpos('.')[1:2]
+	let l:list = []
+	while s:GetNextHeaderLineNumber() != -1
+		call s:GotoNextHeader()
+		let l:ln = getpos('.')[1]
+		let l:text = getline('.')
+		let l:list = l:list + [[l:text,l:ln]]
+	endwhile
+	let l:id = win_getid()
+	execute a:orientation
+	let w:asciidoc_id = l:id
+	setlocal buftype=nofile
+	setlocal cursorline
+	nnoremap <buffer> <CR> :call <SID>GotoBrowseTag()<CR>
+	for l:item in l:list
+		call append(line('$')-1, l:item[1] . " | " . l:item[0])
+	endfor
+endfun
+
+fun s:GotoBrowseTag()
+	let l:ln = getpos('.')[1]
+	let l:line = getline(l:ln)
+	let l:num = split(l:line, " ")[0]
+	let l:num = str2nr(l:num)	
+	call win_gotoid(w:asciidoc_id)
+	call cursor(l:num, 1)
+endfun
+
 command! AsciidocGotoCurrentHeader      call <SID>GotoCurrentHeader()
 command! AsciidocGotoNextHeader         call <SID>GotoNextHeader()
 command! AsciidocGotoPrevHeader         call <SID>GotoPreviousHeader()
@@ -374,9 +436,14 @@ command! AsciidocInsertOpenBlock        call <SID>InsertBlock('-', 2)
 
 command! -nargs=+ AsciidocInsertTable   call <SID>InsertTable(<f-args>)
 command! AsciidocShowSyntaxHelp         call <SID>AsciidocShowSyntaxHelp()
-command! AsciidocShowVSyntaxHelp         call <SID>VAsciidocShowSyntaxHelp()
+command! AsciidocShowVSyntaxHelp        call <SID>VAsciidocShowSyntaxHelp()
+command! AsciidocBrowseTreeV            call <SID>BrowseTree('vnew')
+command! AsciidocBrowseTree             call <SID>BrowseTree('new')
 
-nnoremap <C-A><C-N> :AsciidocGotoNextHeader<CR>
-nnoremap <C-A><C-P> :AsciidocGotoPrevHeader<CR>
-nnoremap <C-A><C-D> :AsciidocGotoToCurrentHeader<CR>
+nnoremap <C-A>n :AsciidocGotoNextHeader<CR>
+nnoremap <C-A>b :AsciidocGotoPrevHeader<CR>
+nnoremap <C-A>c :AsciidocGotoCurrentHeader<CR>
+nnoremap <C-A>p :AsciidocGotoParentHeader<CR>
+nnoremap <C-A><C-P> :AsciidocBrowseTreeV<CR>
+nnoremap <C-A>g<C-P> :AsciidocBrowseTree<CR>
 
