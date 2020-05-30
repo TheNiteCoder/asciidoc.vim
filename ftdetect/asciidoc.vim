@@ -1,1 +1,2 @@
-autocmd BufNewFile,BufRead *.adoc,*.asciidoc setl filetype=asciidoc
+au BufNewFile,BufRead *.adoc,*.asciidoc set filetype=asciidoc
+
